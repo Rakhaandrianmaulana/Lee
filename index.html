@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pusat Kontrol Web v0.2</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .card {
+            background-color: #1f2937; /* bg-gray-800 */
+            border: 1px solid #374151; /* border-gray-700 */
+            border-radius: 0.75rem; /* rounded-xl */
+            padding: 1.5rem; /* p-6 */
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            border: 1px solid transparent;
+        }
+        .btn-primary {
+            background-color: #3b82f6; /* bg-blue-600 */
+            color: white;
+        }
+        .btn-primary:hover {
+            background-color: #2563eb; /* bg-blue-700 */
+        }
+        .btn-secondary {
+            background-color: #374151; /* bg-gray-700 */
+            color: #d1d5db; /* text-gray-300 */
+            border-color: #4b5563; /* border-gray-600 */
+        }
+        .btn-secondary:hover {
+            background-color: #4b5563; /* bg-gray-600 */
+        }
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #4b5563;
+            transition: .4s;
+            border-radius: 34px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider {
+            background-color: #3b82f6;
+        }
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+        input:disabled + .slider {
+            cursor: not-allowed;
+            background-color: #374151;
+        }
+        .modal-backdrop {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 50; opacity: 0; transition: opacity 0.3s ease; pointer-events: none;
+        }
+        .modal-backdrop.active {
+            opacity: 1; pointer-events: auto;
+        }
+        .modal-content {
+            background-color: #1f2937; padding: 2rem; border-radius: 0.75rem;
+            width: 90%; max-width: 500px; transform: scale(0.95); transition: transform 0.3s ease;
+        }
+        .modal-backdrop.active .modal-content {
+            transform: scale(1);
+        }
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 220px;
+            background-color: #111827;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 8px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -110px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 0.8rem;
+        }
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-200 antialiased">
+
+    <audio id="volume-tester" src="https://www.soundjay.com/buttons/sounds/button-16.mp3" loop></audio>
+
+    <div class="container mx-auto p-4 md:p-8 max-w-4xl">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-white">Pusat Kontrol Web v0.2</h1>
+            <p class="text-gray-400 mt-2">Dasbor untuk mengelola fitur perangkat melalui Web API yang aman.</p>
+        </header>
+
+        <main class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            <!-- System Status -->
+            <div class="card md:col-span-2">
+                <h2 class="text-xl font-semibold mb-4 text-white">Status Sistem & Notifikasi</h2>
+                <div class="space-y-6">
+                    <!-- Jam -->
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-3">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            <span class="font-medium">Waktu Saat Ini</span>
+                        </div>
+                        <span id="clock" class="font-mono text-lg"></span>
+                    </div>
+                    <!-- Baterai -->
+                    <div class="flex flex-col space-y-2">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-3">
+                                <span id="battery-icon">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0h6" /></svg>
+                                </span>
+                                <span class="font-medium">Status Baterai</span>
+                            </div>
+                            <span id="battery-level" class="font-mono text-sm">Mendeteksi...</span>
+                        </div>
+                        <div class="w-full bg-gray-600 rounded-full h-2.5">
+                            <div id="battery-progress" class="bg-green-500 h-2.5 rounded-full" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    <!-- Notifikasi -->
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-3">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-pink-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
+                            <span class="font-medium">Notifikasi Browser</span>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <span id="notification-count" class="font-mono text-sm bg-gray-700 px-2 py-1 rounded-full">0</span>
+                            <button id="notification-btn" class="btn btn-secondary text-sm py-2 px-3">Minta Izin</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Hardware Controls -->
+            <div class="card md:col-span-2">
+                <h2 class="text-xl font-semibold mb-4 text-white">Kontrol Perangkat Keras & Jaringan</h2>
+                <div class="space-y-6">
+                    <!-- Data Seluler (DISABLED) -->
+                    <div class="flex items-center justify-between opacity-50">
+                        <div class="flex items-center space-x-3">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            <span class="font-medium">Data Seluler</span>
+                            <div class="tooltip">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 cursor-pointer" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" /></svg>
+                                <span class="tooltiptext">Browser tidak bisa mengontrol data seluler karena alasan keamanan. Ini adalah fitur proteksi sistem operasi.</span>
+                            </div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" disabled>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <!-- Senter -->
+                    <div class="flex items-center justify-between">
+                         <div class="flex items-center space-x-3">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
+                            <span class="font-medium">Senter (Flashlight)</span>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="torch-toggle">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <!-- Getaran -->
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-3">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.636 5.636a9 9 0 1012.728 0M12 3v9" /></svg>
+                             <span class="font-medium">Getaran (Vibration)</span>
+                        </div>
+                        <button id="vibrate-btn" class="btn btn-secondary">Tes Getar 200ms</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Network Info & DNS -->
+            <div class="card md:col-span-2">
+                 <h2 class="text-xl font-semibold mb-4 text-white">Jaringan & DNS</h2>
+                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                     <div>
+                         <h3 class="font-semibold mb-2 text-white">Informasi Koneksi</h3>
+                         <div class="space-y-4">
+                            <div class="flex justify-between text-sm"><span class="font-medium">Status</span><span id="status" class="font-mono px-2 py-1 text-xs rounded"></span></div>
+                            <div class="flex justify-between text-sm"><span class="font-medium">Tipe</span><span id="connection-type" class="font-mono">...</span></div>
+                            <div class="flex justify-between text-sm"><span class="font-medium">Kecepatan</span><span id="effective-type" class="font-mono">...</span></div>
+                        </div>
+                     </div>
+                      <div>
+                        <h3 class="font-semibold mb-2 text-white">Rekomendasi DNS Aman</h3>
+                        <p class="text-xs text-gray-400 mb-2">Ubah di pengaturan perangkat untuk privasi lebih.</p>
+                        <div id="dns-list" class="space-y-2"></div>
+                        <button id="how-to-dns-btn" class="btn btn-primary w-full mt-4 text-sm py-2">Cara Ubah DNS</button>
+                     </div>
+                 </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- DNS Modal -->
+    <div id="dns-modal" class="modal-backdrop">
+        <div class="modal-content"><!-- Modal content here --></div>
+    </div>
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- Element Selectors ---
+            const clockEl = document.getElementById('clock');
+            const batteryLevelEl = document.getElementById('battery-level');
+            const batteryProgressEl = document.getElementById('battery-progress');
+            const batteryIconEl = document.getElementById('battery-icon');
+            const notificationBtn = document.getElementById('notification-btn');
+            const notificationCountEl = document.getElementById('notification-count');
+            const torchToggle = document.getElementById('torch-toggle');
+            const vibrateBtn = document.getElementById('vibrate-btn');
+            const statusEl = document.getElementById('status');
+            const connectionTypeEl = document.getElementById('connection-type');
+            const effectiveTypeEl = document.getElementById('effective-type');
+            const dnsModal = document.getElementById('dns-modal');
+
+            let torchTrack = null;
+            let notificationCounter = 0;
+
+            // --- System Status ---
+
+            // Clock
+            function updateClock() {
+                const now = new Date();
+                clockEl.textContent = now.toLocaleTimeString('id-ID');
+            }
+            setInterval(updateClock, 1000);
+            updateClock();
+
+            // Battery API
+            const updateBatteryStatus = (battery) => {
+                const level = Math.floor(battery.level * 100);
+                batteryLevelEl.textContent = `${level}% ${battery.charging ? '(Mengisi daya)' : ''}`;
+                batteryProgressEl.style.width = `${level}%`;
+                
+                // Change color based on level
+                if (level < 20) {
+                    batteryProgressEl.classList.remove('bg-green-500', 'bg-yellow-500');
+                    batteryProgressEl.classList.add('bg-red-500');
+                } else if (level < 50) {
+                    batteryProgressEl.classList.remove('bg-green-500', 'bg-red-500');
+                    batteryProgressEl.classList.add('bg-yellow-500');
+                } else {
+                    batteryProgressEl.classList.remove('bg-yellow-500', 'bg-red-500');
+                    batteryProgressEl.classList.add('bg-green-500');
+                }
+
+                // Change icon based on charging status
+                if (battery.charging) {
+                    batteryIconEl.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>`;
+                } else {
+                     batteryIconEl.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0h6" /></svg>`;
+                }
+            };
+
+            if ('getBattery' in navigator) {
+                navigator.getBattery().then(battery => {
+                    updateBatteryStatus(battery);
+                    battery.addEventListener('levelchange', () => updateBatteryStatus(battery));
+                    battery.addEventListener('chargingchange', () => updateBatteryStatus(battery));
+                });
+            } else {
+                batteryLevelEl.textContent = 'API tidak didukung';
+            }
+
+            // Notification API
+            function updateNotificationButton() {
+                if (!('Notification' in window)) {
+                    notificationBtn.textContent = 'Tidak didukung';
+                    notificationBtn.disabled = true;
+                    return;
+                }
+                switch(Notification.permission) {
+                    case 'granted':
+                        notificationBtn.textContent = 'Kirim Notifikasi Tes';
+                        break;
+                    case 'denied':
+                        notificationBtn.textContent = 'Izin Diblokir';
+                        notificationBtn.disabled = true;
+                        break;
+                    default:
+                        notificationBtn.textContent = 'Minta Izin';
+                }
+            }
+            updateNotificationButton();
+            
+            notificationBtn.addEventListener('click', () => {
+                if (Notification.permission === 'granted') {
+                    new Notification('Pemberitahuan dari Web!', {
+                        body: 'Ini adalah notifikasi tes yang berhasil.',
+                        icon: 'https://placehold.co/48x48/3B82F6/FFFFFF?text=🔔'
+                    });
+                    notificationCounter++;
+                    notificationCountEl.textContent = notificationCounter;
+                } else if (Notification.permission !== 'denied') {
+                    Notification.requestPermission().then(permission => {
+                        if (permission === 'granted') {
+                             new Notification('Terima Kasih!', { body: 'Izin notifikasi telah diberikan.' });
+                        }
+                        updateNotificationButton();
+                    });
+                }
+            });
+
+
+            // --- Hardware & Network Controls ---
+            const setupTorch = async () => {
+                if ('mediaDevices' in navigator && 'getUserMedia' in navigator.mediaDevices) {
+                    try {
+                        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                        torchTrack = stream.getVideoTracks()[0];
+                        torchToggle.addEventListener('change', () => {
+                            if (torchTrack.getCapabilities().torch) {
+                                torchTrack.applyConstraints({ advanced: [{ torch: torchToggle.checked }] });
+                            }
+                        });
+                    } catch (err) {
+                        torchToggle.disabled = true;
+                    }
+                } else {
+                    torchToggle.disabled = true;
+                }
+            };
+            setupTorch();
+            
+            vibrateBtn.addEventListener('click', () => {
+                if ('vibrate' in navigator) navigator.vibrate(200);
+            });
+
+            const updateNetworkInfo = () => {
+                statusEl.textContent = navigator.onLine ? 'Online' : 'Offline';
+                statusEl.className = `font-mono px-2 py-1 text-xs rounded ${navigator.onLine ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`;
+                if ('connection' in navigator) {
+                    const connection = navigator.connection;
+                    connectionTypeEl.textContent = connection.type || 'N/A';
+                    effectiveTypeEl.textContent = connection.effectiveType || 'N/A';
+                } else {
+                    connectionTypeEl.textContent = 'Unsupported';
+                    effectiveTypeEl.textContent = 'Unsupported';
+                }
+            };
+            window.addEventListener('online', updateNetworkInfo);
+            window.addEventListener('offline', updateNetworkInfo);
+            if ('connection' in navigator) {
+                navigator.connection.addEventListener('change', updateNetworkInfo);
+            }
+            updateNetworkInfo();
+
+            // --- DNS Section ---
+            const dnsProviders = [
+                { name: 'Cloudflare', primary: '1.1.1.1', benefit: 'Privasi & Kecepatan.' },
+                { name: 'Quad9', primary: '9.9.9.9', benefit: 'Blokir Malware.' }
+            ];
+            const dnsListEl = document.getElementById('dns-list');
+            dnsProviders.forEach(dns => {
+                const item = document.createElement('div');
+                item.className = 'p-2 bg-gray-700 rounded-lg text-xs';
+                item.innerHTML = `<p class="font-semibold text-white">${dns.name} (${dns.primary})</p><p class="text-gray-400">${dns.benefit}</p>`;
+                dnsListEl.appendChild(item);
+            });
+            
+            // --- Modal ---
+            // Simplified modal content for brevity
+            dnsModal.querySelector('.modal-content').innerHTML = `
+                <h2 class="text-xl font-semibold mb-4 text-white">Cara Mengubah DNS</h2>
+                <div class="text-sm text-gray-300 space-y-4">
+                    <p>Cari pengaturan jaringan di perangkat Anda (Wi-Fi atau DNS Pribadi) dan masukkan alamat server DNS secara manual.</p>
+                    <p><b>Contoh Android:</b> Pengaturan > Jaringan & Internet > DNS Pribadi.</p>
+                    <p><b>Contoh iOS:</b> Pengaturan > Wi-Fi > Ketuk jaringan Anda > Konfigurasi DNS.</p>
+                </div>
+                <button id="close-dns-modal-btn" class="btn btn-primary w-full mt-6">Tutup</button>
+            `;
+            const openModal = () => dnsModal.classList.add('active');
+            const closeModal = () => dnsModal.classList.remove('active');
+            document.getElementById('how-to-dns-btn').addEventListener('click', openModal);
+            dnsModal.addEventListener('click', (e) => {
+                if (e.target === dnsModal || e.target.id === 'close-dns-modal-btn') closeModal();
+            });
+        });
+    </script>
+</body>
+</html>
+
